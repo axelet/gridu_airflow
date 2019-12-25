@@ -1,19 +1,22 @@
 from airflow import DAG
+from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime
 import logging
 
-
-config = {
-    'dag_id_1': {"start_date": datetime(2019, 12, 1), "table_name": "table_name_1"},
-    'dag_id_2': {"start_date": datetime(2019, 12, 1), "table_name": "table_name_2"},
-    'dag_id_3': {"start_date": datetime(2019, 12, 1), "table_name": "table_name_3"}
-}
+dag_number = int(Variable.get('dag_number'))
+config = {}
+for id in range(dag_number):
+    config['dag_id_{}'.format(id)] = \
+        {"start_date": datetime(2019, 12, 1), "table_name": "table_name_{}".format(id)}
 
 
 def process_db_table(dag_id, database, **context):
-    logging.info('{dag_id} start processing tables in database: {database}'.format(dag_id, database))
+    logging.info('{dag_id} start processing tables in database: {database}'.format(
+        dag_id=dag_id,
+        database=database
+    ))
 
 
 for dag_id in config:
@@ -28,7 +31,7 @@ for dag_id in config:
         provide_context=True,
         python_callable=process_db_table,
         op_kwargs=dict(
-            dag_id=dag.dag_id,
+            dag_id=dag_id,
             database='db_name'
         ),
         dag=dag
