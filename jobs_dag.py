@@ -16,7 +16,6 @@ def process_db_table(dag_id, database, **context):
     logging.info('{dag_id} start processing tables in database: {database}'.format(dag_id, database))
 
 
-dags = {}
 for dag_id in config:
     dag = DAG(
         dag_id=dag_id,
@@ -42,6 +41,4 @@ for dag_id in config:
         dag=dag
     )
     start_processing_tables_in_db >> insert_new_row >> query_the_table
-    dags.update(dict(dag_id=dag))
-
-globals().update(dags)
+    globals()[dag_id] = dag
