@@ -6,9 +6,9 @@ import logging
 
 
 config = {
-    'dag_id_1': {'schedule_interval': None, "start_date": datetime(2019, 12, 1), "table_name": "table_name_1"},
-    'dag_id_2': {'schedule_interval': None, "start_date": datetime(2019, 12, 1), "table_name": "table_name_2"},
-    'dag_id_3': {'schedule_interval': None, "start_date": datetime(2019, 12, 1), "table_name": "table_name_3"}
+    'dag_id_1': {"start_date": datetime(2019, 12, 1), "table_name": "table_name_1"},
+    'dag_id_2': {"start_date": datetime(2019, 12, 1), "table_name": "table_name_2"},
+    'dag_id_3': {"start_date": datetime(2019, 12, 1), "table_name": "table_name_3"}
 }
 
 
@@ -19,7 +19,8 @@ def process_db_table(dag_id, database, **context):
 for dag_id in config:
     dag = DAG(
         dag_id=dag_id,
-        default_args=config[dag_id]
+        default_args=config[dag_id],
+        schedule_interval=None
     )
 
     start_processing_tables_in_db = PythonOperator(
