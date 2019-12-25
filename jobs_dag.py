@@ -16,11 +16,11 @@ def process_db_table(dag_id, database, **context):
     logging.info('{dag_id} start processing tables in database: {database}'.format(dag_id, database))
 
 
-dags = []
-for dag_conf in config:
+dags = {}
+for dag_id in config:
     dag = DAG(
-        dag_id=dag_conf,
-        default_args=config[dag_conf]
+        dag_id=dag_id,
+        default_args=config[dag_id]
     )
 
     start_processing_tables_in_db = PythonOperator(
@@ -42,5 +42,6 @@ for dag_conf in config:
         dag=dag
     )
     start_processing_tables_in_db >> insert_new_row >> query_the_table
-    dags.append(dag)
+    dags.update(dict(dag_id=dag))
 
+globals().update(dags)
