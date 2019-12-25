@@ -1,7 +1,10 @@
 from airflow import DAG
-from airflow.models import Connection, Variable
+from airflow.models import Connection, Variable, Trig
 from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
+from airflow.utils.trigger_rule import TriggerRule
+from airflow.ti_deps.deps.trigger_rule_dep import TriggerRuleDep
 from datetime import datetime
 import logging
 
@@ -40,6 +43,11 @@ for dag_id in config:
         ),
         dag=dag
     )
+    get_current_user = BashOperator(
+        task_id='ger_current_user',
+        bash_command='echo "$USER"',
+        dag=dag
+    )
     check_table_exist = BranchPythonOperator(
         task_id='check_table_exist',
         provide_context=True,
@@ -56,14 +64,15 @@ for dag_id in config:
     )
     insert_new_row = DummyOperator(
         task_id='insert_new_row',
+        trigger_rule=TriggerRule.ALL_DONE,
         dag=dag
     )
     query_the_table = DummyOperator(
         task_id='query_the_table',
         dag=dag
     )
-    start_processing_tables_in_db >> check_table_exist >> [create_table, skip_table_creation] >> \
-        insert_new_row >> query_the_table
+    start_processing_tables_in_db >> get_current_user >> check_table_exist >> \
+        [create_table, skip_table_creation] >> insert_new_row >> query_the_table
 
     globals().update({dag_id: dag})
 
