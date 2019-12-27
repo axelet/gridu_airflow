@@ -1,4 +1,4 @@
-from airflow import DAG,
+from airflow import DAG
 from airflow.contrib.sensors.file_sensor import FileSensor
 from airflow.operators.dagrun_operator import TriggerDagRunOperator
 from airflow.operators.bash_operator import BashOperator
@@ -18,7 +18,7 @@ check_run_file_exists = FileSensor(
 )
 
 trigger_dags = TriggerDagRunOperator(
-    trigger_dag_id='trigger_dags',
+    trigger_dag_id='dag_id_0',
 
     dag=dag
 )
