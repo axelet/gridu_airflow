@@ -3,12 +3,15 @@ from airflow.contrib.sensors.file_sensor import FileSensor
 from airflow.operators.dagrun_operator import TriggerDagRunOperator
 from airflow.operators.bash_operator import BashOperator
 from airflow.models import Variable
+from datetime import datetime
+
 
 dag_number = Variable.get('dag_number', default_var=5)
 
 dag = DAG(
     dag_id='trigger_dag',
-    schedule_interval=None
+    schedule_interval=None,
+    start_date=datetime(2019, 12, 1)
 )
 
 check_run_file_exists = FileSensor(
