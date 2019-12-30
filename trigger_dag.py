@@ -7,10 +7,18 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.operators.subdag_operator import SubDagOperator
 from airflow.sensors.external_task_sensor import ExternalTaskSensor
 from datetime import datetime, timedelta
+import logging
 
 
 dag_number = Variable.get('dag_number', default_var=5)
 run_flag_path = Variable.get('run_flag_path')
+
+
+def print_result_to_log(**context):
+    status = context['ti'].xcom_pull(task_ids='dag_id_0',
+                                     key='status')
+    logging.info(status)
+    logging.info(context)
 
 
 def create_process_results(parent_dag_name, child_dag_name, schedule_interval, start_date):
@@ -31,14 +39,14 @@ def create_process_results(parent_dag_name, child_dag_name, schedule_interval, s
 
     print_result = PythonOperator(
         task_id='print_result',
-        python_callable=lambda _: None,
+        python_callable=print_result_to_log,
         dag=subdag
     )
 
     remove_run_file = BashOperator(
         task_id='remove_run_file',
         bash_command='rm $AIRFLOW_HOME/{}'.format(run_flag_path),
-        dag=dag
+        dag=subdag
     )
 
     finished_timestamp = BashOperator(

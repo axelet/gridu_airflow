@@ -27,7 +27,7 @@ def check_table_existance(**context):
 
 
 def push_finished_state(**context):
-    context['ti'].xcom_push(key='{{ run_id }}', value='{{ run_id }} ended')
+    context['ti'].xcom_push(key='status', value='{{ run_id }} ended')
 
 
 for dag_id in config:
