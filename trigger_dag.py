@@ -15,7 +15,7 @@ run_flag_path = Variable.get('run_flag_path')
 
 
 def print_result_to_log(**context):
-    status = context['ti'].xcom_pull(task_ids='dag_id_0',
+    status = context['ti'].xcom_pull(task_ids='query_the_table',
                                      key='status')
     logging.info(status)
     logging.info(context)
@@ -31,9 +31,11 @@ def create_process_results(parent_dag_name, child_dag_name, schedule_interval, s
     sensor_triggered_dag = ExternalTaskSensor(
         task_id='sensor_triggered_dag',
         external_dag_id='dag_id_0',
-        external_task_id='None',
+        external_task_id=None,
         execution_date_fn=lambda exec_date: exec_date,
         allowed_states=['success'],
+        mode='reschedule',
+        poke_interval=20,
         dag=subdag
     )
 

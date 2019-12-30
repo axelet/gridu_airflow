@@ -27,7 +27,7 @@ def check_table_existance(**context):
 
 
 def push_finished_state(**context):
-    context['ti'].xcom_push(key='status', value='{{ run_id }} ended')
+    context['ti'].xcom_push(key='status', value="{run_id} ended".format(run_id=context['run_id']))
 
 
 for dag_id in config:
@@ -75,6 +75,7 @@ for dag_id in config:
         task_id='query_the_table',
         python_callable=push_finished_state,
         provide_context=True,
+        templates_dict={},
         dag=dag
     )
     start_processing_tables_in_db >> get_current_user >> check_table_exist >> \
