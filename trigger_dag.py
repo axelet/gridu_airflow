@@ -32,7 +32,7 @@ def create_process_results(parent_dag_name, child_dag_name, schedule_interval, s
         task_id='sensor_triggered_dag',
         external_dag_id='dag_id_0',
         external_task_id=None,
-        execution_date_fn=lambda exec_date: exec_date,
+        # execution_date_fn=lambda exec_date: exec_date,
         allowed_states=['success'],
         mode='reschedule',
         poke_interval=20,
@@ -53,7 +53,7 @@ def create_process_results(parent_dag_name, child_dag_name, schedule_interval, s
 
     finished_timestamp = BashOperator(
         task_id='finished_timestamp',
-        bash_command='touch finished_{{ ts_nodash }}',
+        bash_command='touch $AIRFLOW_HOME/finished_{{ ts_nodash }}',
         dag=subdag
     )
 
@@ -79,6 +79,7 @@ check_run_file_exists = FileSensor(
 trigger_dags = TriggerDagRunOperator(
     task_id='trigger_dags',
     trigger_dag_id='dag_id_0',
+    execution_date={{ execution_date }},
     dag=dag
 )
 
