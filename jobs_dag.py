@@ -26,6 +26,10 @@ def check_table_existance(**context):
     return 'skip_table_creation' if True else 'create_table'
 
 
+def push_finished_state(**context):
+    context['ti'].xcom_push(key='{{ run_id }}', value='{{ run_id }} ended')
+
+
 for dag_id in config:
     dag = DAG(
         dag_id=dag_id,
@@ -67,8 +71,10 @@ for dag_id in config:
         trigger_rule=TriggerRule.ALL_DONE,
         dag=dag
     )
-    query_the_table = DummyOperator(
+    query_the_table = PythonOperator(
         task_id='query_the_table',
+        python_callable=push_finished_state,
+        provide_context=True,
         dag=dag
     )
     start_processing_tables_in_db >> get_current_user >> check_table_exist >> \

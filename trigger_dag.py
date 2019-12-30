@@ -25,11 +25,13 @@ def create_process_results(parent_dag_name, child_dag_name, schedule_interval, s
         external_dag_id='dag_id_0',
         external_task_id='None',
         execution_date_fn=lambda exec_date: exec_date,
+        allowed_states=['success'],
         dag=subdag
     )
 
     print_result = PythonOperator(
         task_id='print_result',
+        python_callable=lambda _: None,
         dag=subdag
     )
 
@@ -40,7 +42,8 @@ def create_process_results(parent_dag_name, child_dag_name, schedule_interval, s
     )
 
     finished_timestamp = BashOperator(
-        task_id='finished_{{ ts_nodash }}',
+        task_id='finished_timestamp',
+        bash_command='touch finished_{{ ts_nodash }}',
         dag=subdag
     )
 
