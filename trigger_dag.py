@@ -79,7 +79,7 @@ check_run_file_exists = FileSensor(
 trigger_dags = TriggerDagRunOperator(
     task_id='trigger_dags',
     trigger_dag_id='dag_id_0',
-    execution_date={{ execution_date }},
+    execution_date='{{ execution_date }}',
     dag=dag
 )
 
