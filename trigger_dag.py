@@ -42,6 +42,7 @@ def create_process_results(parent_dag_name, child_dag_name, schedule_interval, s
     print_result = PythonOperator(
         task_id='print_result',
         python_callable=print_result_to_log,
+        provide_context=True,
         dag=subdag
     )
 
