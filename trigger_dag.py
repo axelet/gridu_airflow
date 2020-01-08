@@ -49,7 +49,7 @@ def create_process_results(parent_dag_name, child_dag_name, schedule_interval, s
 
     remove_run_file = BashOperator(
         task_id='remove_run_file',
-        bash_command='rm $AIRFLOW_HOME/{}'.format(run_flag_path),
+        bash_command='rm $AIRFLOW_HOME/storage/{}'.format(run_flag_path),
         dag=subdag
     )
 
