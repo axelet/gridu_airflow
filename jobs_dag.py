@@ -27,22 +27,18 @@ def process_db_table(dag_id, database, **context):
 
 def check_table_existance(sql_to_get_schema, sql_to_check_table_exist, table_name, **context):
     hook = PostgresHook()
-    # get schema name
     query = hook.get_records(sql=sql_to_get_schema)
+    logging.info(query)
     for result in query:
         if 'airflow' in result:
             schema = result[0]
-            print(schema)
+            logging.info(schema)
             break
 
-    # check table exist
     query = hook.get_first(sql=sql_to_check_table_exist.format(schema, table_name))
-    print(query)
-    if query:
-        return True
-    else:
-        raise ValueError("table {} does not exist".format(table_name))
-    return 'skip_table_creation' if True else 'create_table'
+    logging.info(query)
+
+    return 'skip_table_creation' if query[0] else 'create_table'
 
 
 def push_finished_state(query, **context):
@@ -80,6 +76,13 @@ for dag_id in config:
         task_id='check_table_exist',
         provide_context=True,
         python_callable=check_table_existance,
+        op_kwargs=dict(
+            sql_to_get_schema="SELECT * FROM pg_tables;",
+            sql_to_check_table_exist="SELECT * FROM information_schema.tables"
+                                     "WHERE table_schema = '{}'"
+                                     "AND table_name = '{}';",
+            table_name='clients'
+        ),
         dag=dag
     )
     create_table = PostgresOperator(
