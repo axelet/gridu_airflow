@@ -15,10 +15,10 @@ run_flag_path = Variable.get('run_flag_path')
 
 
 def print_result_to_log(**context):
-    status = context['ti'].xcom_pull(dag_id='dag_id_0',
-                                     task_ids='query_the_table',
-                                     key='status')
-    logging.info(status)
+    count = context['ti'].xcom_pull(dag_id='dag_id_0',
+                                    task_ids='query_the_table',
+                                    key='count')
+    logging.info(count)
     logging.info(context)
 
 

@@ -1,12 +1,15 @@
 from airflow import DAG
 from airflow.models import Connection, Variable
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
+from airflow.operators.postgres_operator import PostgresOperator
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.ti_deps.deps.trigger_rule_dep import TriggerRuleDep
 from datetime import datetime
 import logging
+import uuid
 
 dag_number = int(Variable.get('dag_number'))
 config = {}
@@ -22,14 +25,32 @@ def process_db_table(dag_id, database, **context):
     ))
 
 
-def check_table_existance(**context):
+def check_table_existance(sql_to_get_schema, sql_to_check_table_exist, table_name, **context):
+    hook = PostgresHook()
+    # get schema name
+    query = hook.get_records(sql=sql_to_get_schema)
+    for result in query:
+        if 'airflow' in result:
+            schema = result[0]
+            print(schema)
+            break
+
+    # check table exist
+    query = hook.get_first(sql=sql_to_check_table_exist.format(schema, table_name))
+    print(query)
+    if query:
+        return True
+    else:
+        raise ValueError("table {} does not exist".format(table_name))
     return 'skip_table_creation' if True else 'create_table'
 
 
-def push_finished_state(**context):
-    context['ti'].xcom_push(key='status',
-                            value="{run_id} ended".format(run_id=context['run_id']))
-    logging.info(context)
+def push_finished_state(query, **context):
+    hook = PostgresHook()
+    records = hook.get_records(sql=query)
+    context['ti'].xcom_push(key='count',
+                            value=records)
+    logging.info(query)
 
 
 for dag_id in config:
@@ -50,8 +71,9 @@ for dag_id in config:
         dag=dag
     )
     get_current_user = BashOperator(
-        task_id='ger_current_user',
-        bash_command='echo "$USER"',
+        task_id='get_current_user',
+        bash_command='echo $USER',
+        xcom_push=True,
         dag=dag
     )
     check_table_exist = BranchPythonOperator(
@@ -60,22 +82,32 @@ for dag_id in config:
         python_callable=check_table_existance,
         dag=dag
     )
-    create_table = DummyOperator(
+    create_table = PostgresOperator(
         task_id='create_table',
+        postgres_conn_id='postgres_default',
+        sql="CREATE TABLE clients ("
+            "custom_id integer NOT NULL,"
+            "user_name VARCHAR (50) NOT NULL,"
+            "timestamp TIMESTAMP NOT NULL);",
         dag=dag
     )
     skip_table_creation = DummyOperator(
         task_id='skip_table_creation',
         dag=dag
     )
-    insert_new_row = DummyOperator(
+    insert_new_row = PostgresOperator(
         task_id='insert_new_row',
-        trigger_rule=TriggerRule.ALL_DONE,
+        postgres_conn_id='postgres_default',
+        sql="INSERT INTO clients VALUES(%s, '{{ ti.xcom_pull(task_ids='get_current_user') }}', %s)",
+        parameters=(uuid.uuid4().int % 123456789, datetime.now()),
         dag=dag
     )
     query_the_table = PythonOperator(
         task_id='query_the_table',
         python_callable=push_finished_state,
+        op_kwargs=dict(
+            query="SELECT COUNT(*) FROM clients"
+        ),
         provide_context=True,
         dag=dag
     )
