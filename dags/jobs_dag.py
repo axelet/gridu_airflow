@@ -5,6 +5,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.postgres_custom import PostgreSQLCountRowsOperator
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.ti_deps.deps.trigger_rule_dep import TriggerRuleDep
 from datetime import datetime
@@ -38,14 +39,14 @@ def check_table_existance(sql_to_get_schema, sql_to_check_table_exist, table_nam
     query = hook.get_first(sql=sql_to_check_table_exist.format(schema, table_name))
     logging.info(query)
 
-    return 'skip_table_creation' if query[0] else 'create_table'
+    return 'skip_table_creation' if query else 'create_table'
 
 
 def push_finished_state(query, **context):
     hook = PostgresHook()
     records = hook.get_records(sql=query)
-    context['ti'].xcom_push(key='count',
-                            value=records)
+    context['ti'].xcom_push(key='count_rows',
+                            value=records[0])
     logging.info(query)
 
 
@@ -62,7 +63,7 @@ for dag_id in config:
         python_callable=process_db_table,
         op_kwargs=dict(
             dag_id=dag_id,
-            database='db_name'
+            database='airflow'
         ),
         dag=dag
     )
@@ -78,7 +79,7 @@ for dag_id in config:
         python_callable=check_table_existance,
         op_kwargs=dict(
             sql_to_get_schema="SELECT * FROM pg_tables;",
-            sql_to_check_table_exist="SELECT * FROM information_schema.tables"
+            sql_to_check_table_exist="SELECT * FROM information_schema.tables "
                                      "WHERE table_schema = '{}'"
                                      "AND table_name = '{}';",
             table_name='clients'
@@ -103,14 +104,12 @@ for dag_id in config:
         postgres_conn_id='postgres_default',
         sql="INSERT INTO clients VALUES(%s, '{{ ti.xcom_pull(task_ids='get_current_user') }}', %s)",
         parameters=(uuid.uuid4().int % 123456789, datetime.now()),
+        trigger_rule=TriggerRule.ALL_DONE,
         dag=dag
     )
-    query_the_table = PythonOperator(
+    query_the_table = PostgreSQLCountRowsOperator(
         task_id='query_the_table',
-        python_callable=push_finished_state,
-        op_kwargs=dict(
-            query="SELECT COUNT(*) FROM clients"
-        ),
+        table_name='clients',
         provide_context=True,
         dag=dag
     )
