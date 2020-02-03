@@ -66,7 +66,7 @@ def create_process_results(parent_dag_name, child_dag_name, schedule_interval, s
 
 dag = DAG(
     dag_id='trigger_dag',
-    schedule_interval=timedelta(days=1),
+    schedule_interval=None, # timedelta(days=1),
     start_date=datetime(2019, 12, 27)
 )
 
